@@ -1,5 +1,7 @@
 import {
   type Message,
+  type Attachment,
+  type UserContent,
   convertToCoreMessages,
   createDataStreamResponse,
   experimental_generateImage,
@@ -52,13 +54,44 @@ const weatherTools: AllowedTools[] = ['getWeather'];
 
 const allTools: AllowedTools[] = [...blocksTools, ...weatherTools];
 
+interface FileContent extends UserContent {
+  type: 'file';
+  attachments?: Array<Attachment>;
+}
+
+const handleAttachments = (attachments: Array<Attachment>) => {
+  return attachments.map(attachment => {
+    if (attachment.contentType === 'application/pdf' && attachment.url.startsWith('https://generativelanguage.googleapis.com')) {
+      // This is a Gemini-hosted PDF
+      return {
+        fileData: {
+          fileUri: attachment.url,
+          mimeType: attachment.contentType
+        }
+      };
+    }
+    // For other attachments, use the existing format
+    return {
+      inlineData: {
+        data: attachment.url,
+        mimeType: attachment.contentType
+      }
+    };
+  });
+};
+
 export async function POST(request: Request) {
   const {
     id,
     messages,
     modelId,
-  }: { id: string; messages: Array<Message>; modelId: string } =
-    await request.json();
+    attachments = [],
+  }: { 
+    id: string; 
+    messages: Array<Message>; 
+    modelId: string;
+    attachments?: Array<Attachment>;
+  } = await request.json();
 
   const session = await auth();
 
@@ -101,12 +134,15 @@ export async function POST(request: Request) {
         content: userMessageId,
       });
 
+      const processedAttachments = handleAttachments(attachments);
+      
       const result = streamText({
         model: customModel(model.apiIdentifier),
         system: systemPrompt,
         messages: coreMessages,
         maxSteps: 5,
         experimental_activeTools: allTools,
+        experimental_attachments: processedAttachments,
         tools: {
           getWeather: {
             description: 'Get the current weather at a location',

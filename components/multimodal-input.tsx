@@ -29,6 +29,7 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { SuggestedActions } from './suggested-actions';
 import equal from 'fast-deep-equal';
+import { uploadFileToGemini } from '@/lib/ai/file-manager';
 
 function PureMultimodalInput({
   chatId,
@@ -145,24 +146,45 @@ function PureMultimodalInput({
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/files/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      if (file.type === 'application/pdf') {
+        // Use Gemini's file API for PDFs
+        const response = await fetch('/api/files/gemini', {
+          method: 'POST',
+          body: formData,
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        const { url, pathname, contentType } = data;
+        if (!response.ok) {
+          throw new Error('Failed to upload PDF to Gemini');
+        }
 
+        const result = await response.json();
         return {
-          url,
-          name: pathname,
-          contentType: contentType,
+          url: result.fileUri,
+          name: result.name,
+          contentType: result.mimeType,
         };
+      } else {
+        // Use existing upload for other file types
+        const response = await fetch('/api/files/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const { url, pathname, contentType } = data;
+
+          return {
+            url,
+            name: pathname,
+            contentType: contentType,
+          };
+        }
+        const { error } = await response.json();
+        toast.error(error);
       }
-      const { error } = await response.json();
-      toast.error(error);
     } catch (error) {
+      console.error('Error uploading file:', error);
       toast.error('Failed to upload file, please try again!');
     }
   };

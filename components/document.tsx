@@ -49,7 +49,6 @@ function PureDocumentToolResult({
         }
 
         const rect = event.currentTarget.getBoundingClientRect();
-
         const boundingBox = {
           top: rect.top,
           left: rect.left,
@@ -66,6 +65,9 @@ function PureDocumentToolResult({
           status: 'idle',
           boundingBox,
         });
+
+        // Open in new tab
+        window.open(`/document/${result.id}`, '_blank', 'noopener,noreferrer');
       }}
     >
       <div className="text-muted-foreground mt-1">
@@ -112,7 +114,6 @@ function PureDocumentToolCall({
         }
 
         const rect = event.currentTarget.getBoundingClientRect();
-
         const boundingBox = {
           top: rect.top,
           left: rect.left,

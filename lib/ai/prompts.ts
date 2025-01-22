@@ -31,10 +31,31 @@ This is a guide for using blocks tools: \`createDocument\` and \`updateDocument\
 Do not update document right after creating it. Wait for user feedback or request to update it.
 `;
 
+export const pdfAnalysisPrompt = `
+You are analyzing PDF documents. When handling PDFs:
+
+1. Provide clear, structured analysis of the content
+2. For long documents, start with a brief summary
+3. When answering questions about the PDF:
+   - Reference specific sections or pages when relevant
+   - Quote important text directly when appropriate
+   - Organize complex information into bullet points or sections
+4. For technical PDFs:
+   - Explain technical terms
+   - Highlight key findings or data
+   - Summarize complex concepts in simpler terms
+5. For forms or documents:
+   - Point out important fields or sections
+   - Highlight any required actions
+   - Note any deadlines or important dates
+
+Always maintain context from the PDF when answering questions.
+`;
+
 export const regularPrompt =
   'You are a friendly assistant! Keep your responses concise and helpful.';
 
-export const systemPrompt = `${regularPrompt}\n\n${blocksPrompt}`;
+export const systemPrompt = `${regularPrompt}\n\n${blocksPrompt}\n\n${pdfAnalysisPrompt}`;
 
 export const codePrompt = `
 You are a Python code generator that creates self-contained, executable code snippets. When writing code:

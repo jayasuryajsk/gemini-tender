@@ -141,6 +141,7 @@ export async function POST(request: Request) {
         system: systemPrompt,
         messages: coreMessages,
         maxSteps: 5,
+        maxTokens: 8192,
         experimental_activeTools: allTools,
         experimental_attachments: processedAttachments,
         tools: {
@@ -196,6 +197,7 @@ export async function POST(request: Request) {
                   system:
                     'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
                   prompt: title,
+                  maxTokens: 8192,
                 });
 
                 for await (const delta of fullStream) {
@@ -316,6 +318,7 @@ export async function POST(request: Request) {
                       },
                     },
                   },
+                  maxTokens: 8192,
                 });
 
                 for await (const delta of fullStream) {

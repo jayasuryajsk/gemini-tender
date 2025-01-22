@@ -2,7 +2,7 @@
 
 import type { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
 import { ChatHeader } from '@/components/chat-header';
@@ -49,6 +49,20 @@ export function Chat({
       mutate('/api/history');
     },
   });
+
+  // Handle initial query from search page
+  useEffect(() => {
+    const initialQuery = sessionStorage.getItem(`chat-${id}-initial-query`);
+    if (initialQuery && messages.length === 0) {
+      append({
+        id: id,
+        content: initialQuery,
+        role: 'user',
+      });
+      // Clear the stored query after using it
+      sessionStorage.removeItem(`chat-${id}-initial-query`);
+    }
+  }, [id, messages.length, append]);
 
   const { data: votes } = useSWR<Array<Vote>>(
     `/api/vote?chatId=${id}`,

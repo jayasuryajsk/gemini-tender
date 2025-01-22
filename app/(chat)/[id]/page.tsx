@@ -3,13 +3,13 @@ import { Chat } from '@/components/chat';
 import { DEFAULT_MODEL_NAME, models } from '@/lib/ai/models';
 import { DataStreamHandler } from '@/components/data-stream-handler';
 
-export default async function ChatPage({ 
-  params,
-  searchParams 
-}: { 
-  params: { id: string },
-  searchParams: { message?: string }
-}) {
+interface PageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default async function ChatPage({ params }: PageProps) {
   const cookieStore = await cookies();
   const modelIdFromCookie = cookieStore.get('model-id')?.value;
 
@@ -17,23 +17,20 @@ export default async function ChatPage({
     models.find((model) => model.id === modelIdFromCookie)?.id ||
     DEFAULT_MODEL_NAME;
 
-  const initialMessages = searchParams.message ? [{
-    id: '1',
-    role: 'user',
-    content: searchParams.message,
-  }] : [];
+  // We'll use this ID from the URL params instead of generating a new one
+  const { id } = params;
 
   return (
     <>
       <Chat
-        key={params.id}
-        id={params.id}
-        initialMessages={initialMessages}
+        key={id}
+        id={id}
+        initialMessages={[]}
         selectedModelId={selectedModelId}
         selectedVisibilityType="private"
         isReadonly={false}
       />
-      <DataStreamHandler id={params.id} />
+      <DataStreamHandler id={id} />
     </>
   );
 }

@@ -5,7 +5,7 @@ import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { unlink } from 'fs/promises';
 
-const fileManager = new GoogleAIFileManager(process.env.GOOGLE_API_KEY!);
+const fileManager = new GoogleAIFileManager(process.env.GOOGLE_GENERATIVE_AI_API_KEY!);
 
 // Maximum file size (100MB)
 const MAX_FILE_SIZE = 100 * 1024 * 1024;

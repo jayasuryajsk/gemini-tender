@@ -52,17 +52,27 @@ export function Chat({
 
   // Handle initial query from search page
   useEffect(() => {
-    const initialQuery = sessionStorage.getItem(`chat-${id}-initial-query`);
-    if (initialQuery && messages.length === 0) {
+    // Get initial message from sessionStorage
+    const initialMessage = sessionStorage.getItem('initialMessage');
+    const initialAttachmentsStr = sessionStorage.getItem('initialAttachments');
+    
+    if (initialMessage) {
+      const initialAttachments = initialAttachmentsStr ? JSON.parse(initialAttachmentsStr) : [];
+      
+      // Append the initial message with attachments
       append({
         id: id,
-        content: initialQuery,
+        content: initialMessage,
         role: 'user',
+      }, {
+        experimental_attachments: initialAttachments
       });
-      // Clear the stored query after using it
-      sessionStorage.removeItem(`chat-${id}-initial-query`);
+      
+      // Clear the stored message and attachments
+      sessionStorage.removeItem('initialMessage');
+      sessionStorage.removeItem('initialAttachments');
     }
-  }, [id, messages.length, append]);
+  }, [append, id]);
 
   const { data: votes } = useSWR<Array<Vote>>(
     `/api/vote?chatId=${id}`,

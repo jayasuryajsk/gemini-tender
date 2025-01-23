@@ -8,6 +8,8 @@ import { SidebarToggle } from '@/components/sidebar-toggle';
 import { ModelSelector } from '@/components/model-selector';
 import { useWindowSize } from 'usehooks-ts';
 import { useSidebar } from './ui/sidebar';
+import { toast } from 'sonner';
+import type { Attachment } from 'ai';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,9 +20,11 @@ import {
 export default function ChatInterface() {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const router = useRouter();
-  const { open } = useSidebar();
-  const { width: windowWidth } = useWindowSize();
+  const { width } = useWindowSize();
+  const { toggleSidebar } = useSidebar();
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -39,21 +43,95 @@ export default function ChatInterface() {
     setMessage(e.target.value);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (message.trim() !== '') {
-        handleSubmit();
-      }
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSubmit();
     }
   };
 
   const handleSubmit = () => {
     if (message.trim()) {
-      const chatId = generateUUID();
-      // Store the message to be used as the first message
-      sessionStorage.setItem(`chat-${chatId}-initial-query`, message.trim());
-      router.push(`/chat/${chatId}`);
+      const id = generateUUID();
+      // Store the message in sessionStorage
+      sessionStorage.setItem('initialMessage', message);
+      sessionStorage.setItem('initialAttachments', JSON.stringify(attachments));
+      // Navigate to the new chat page
+      router.push(`/chat/${id}`);
+    }
+  };
+
+  const uploadFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      if (file.type === 'application/pdf') {
+        // Use Gemini's file API for PDFs
+        const response = await fetch('/api/files/gemini', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to upload PDF to Gemini');
+        }
+
+        const result = await response.json();
+        return {
+          url: result.fileUri,
+          name: result.name,
+          contentType: result.mimeType,
+        };
+      } else {
+        // Use existing upload for other file types
+        const response = await fetch('/api/files/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const { url, pathname, contentType } = data;
+
+          return {
+            url,
+            name: pathname,
+            contentType: contentType,
+          };
+        }
+        const { error } = await response.json();
+        toast.error(error);
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.error('Failed to upload file, please try again!');
+    }
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+
+    try {
+      const uploadPromises = files.map((file) => uploadFile(file));
+      const uploadedAttachments = await Promise.all(uploadPromises);
+      const successfullyUploadedAttachments = uploadedAttachments.filter(
+        (attachment): attachment is Attachment => attachment !== undefined,
+      );
+
+      setAttachments((prev) => [...prev, ...successfullyUploadedAttachments]);
+      
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    } catch (error) {
+      console.error('Error handling files:', error);
+      toast.error('Failed to process files, please try again!');
+    } finally {
+      // Clear the input
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
@@ -85,7 +163,18 @@ export default function ChatInterface() {
                 style={{ minHeight: '80px' }}
               />
               <div className="flex items-center gap-4 pr-6">
-                <button className="text-muted-foreground hover:text-foreground transition-colors">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileChange}
+                  accept="image/*,.pdf"
+                  multiple
+                />
+                <button 
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   <Paperclip className="w-4 h-4" />
                 </button>
                 <button 
@@ -95,6 +184,76 @@ export default function ChatInterface() {
                   <Globe className="w-4 h-4" />
                 </button>
               </div>
+            </div>
+
+            {/* Display Attachments */}
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {attachments.map((attachment, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 px-2 py-1 text-xs bg-background rounded border"
+                  >
+                    <span className="truncate max-w-[200px]">{attachment.name}</span>
+                    <button
+                      onClick={() => {
+                        setAttachments(attachments.filter((_, i) => i !== index));
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Action Suggestions */}
+            <div className="flex flex-wrap gap-2 mt-6 justify-center">
+              <button
+                onClick={() => {
+                  setMessage("Find recent government tenders");
+                  if (textareaRef.current) {
+                    textareaRef.current.focus();
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-[#f3f4f6] rounded-lg border border-input hover:bg-background transition-colors text-foreground/80"
+              >
+                🔍 Find tenders
+              </button>
+              <button
+                onClick={() => {
+                  setMessage("Write a tender response");
+                  if (textareaRef.current) {
+                    textareaRef.current.focus();
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-[#f3f4f6] rounded-lg border border-input hover:bg-background transition-colors text-foreground/80"
+              >
+                ✍️ Write response
+              </button>
+              <button
+                onClick={() => {
+                  setMessage("Analyze tender requirements");
+                  if (textareaRef.current) {
+                    textareaRef.current.focus();
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-[#f3f4f6] rounded-lg border border-input hover:bg-background transition-colors text-foreground/80"
+              >
+                📋 Analyze requirements
+              </button>
+              <button
+                onClick={() => {
+                  setMessage("Calculate tender pricing");
+                  if (textareaRef.current) {
+                    textareaRef.current.focus();
+                  }
+                }}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-[#f3f4f6] rounded-lg border border-input hover:bg-background transition-colors text-foreground/80"
+              >
+                💰 Calculate pricing
+              </button>
             </div>
           </div>
         </div>

@@ -299,9 +299,6 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
       </AlertDialog>
 
       <SidebarGroup>
-        <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
-          Today
-        </div>
         <SidebarGroupContent>
           <SidebarMenu>
             {history &&
@@ -311,25 +308,22 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                 return (
                   <>
                     {groupedChats.today.length > 0 && (
-                      <>
-                        <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
-                          Today
-                        </div>
-                        {groupedChats.today.map((chat) => (
-                          <ChatItem
-                            key={chat.id}
-                            chat={chat}
-                            isActive={chat.id === id}
-                            onDelete={(chatId) => {
-                              setDeleteId(chatId);
-                              setShowDeleteDialog(true);
-                            }}
-                            setOpenMobile={setOpenMobile}
-                          />
-                        ))}
-                      </>
+                      <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
+                        Today
+                      </div>
                     )}
-
+                    {groupedChats.today.map((chat) => (
+                      <ChatItem
+                        key={chat.id}
+                        chat={chat}
+                        isActive={chat.id === id}
+                        onDelete={(chatId) => {
+                          setDeleteId(chatId);
+                          setShowDeleteDialog(true);
+                        }}
+                        setOpenMobile={setOpenMobile}
+                      />
+                    ))}
                     {groupedChats.yesterday.length > 0 && (
                       <>
                         <div className="px-2 py-1 text-xs text-sidebar-foreground/50 mt-6">
@@ -349,7 +343,6 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                         ))}
                       </>
                     )}
-
                     {groupedChats.lastWeek.length > 0 && (
                       <>
                         <div className="px-2 py-1 text-xs text-sidebar-foreground/50 mt-6">
@@ -369,7 +362,6 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                         ))}
                       </>
                     )}
-
                     {groupedChats.lastMonth.length > 0 && (
                       <>
                         <div className="px-2 py-1 text-xs text-sidebar-foreground/50 mt-6">
@@ -389,7 +381,6 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
                         ))}
                       </>
                     )}
-
                     {groupedChats.older.length > 0 && (
                       <>
                         <div className="px-2 py-1 text-xs text-sidebar-foreground/50 mt-6">
